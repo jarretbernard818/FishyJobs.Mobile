@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Fishy Jobs — Series 1</title>
+<style>
+  :root {
+    --navy:   #1e3a6e;
+    --blue:   #3a9fd5;
+    --koi:    #d4572a;
+    --teal:   #2abfbf;
+    --gold:   #c8921a;
+    --bg:     #f0f6fb;
+    --surface:#ffffff;
+    --border: #d0e4f0;
+    --text:   #0f2340;
+    --muted:  #5a7a99;
+    --light:  #e4f0f8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 90px; overflow-x: hidden; }
+
+  /* ── Top bar ── */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+    background: var(--navy); box-shadow: 0 2px 12px rgba(30,58,110,0.18);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px; height: 52px;
+  }
+  .topbar-logo { display: flex; align-items: center; gap: 8px; }
+  .topbar-logo-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), var(--teal));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 900; color: white; letter-spacing: -1px;
+  }
+  .topbar-logo-text { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.3px; }
+  .topbar-logo-text span { color: var(--blue); }
+  .ep-picker-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px; padding: 6px 12px; cursor: pointer;
+    font-size: 11px; font-weight: 600; color: #fff; font-family: inherit;
+    transition: background 0.2s;
+  }
+  .ep-picker-btn:hover { background: rgba(255,255,255,0.2); }
+  .ep-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+  /* ── Sidebar ── */
+  .sidebar-overlay {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(15,35,64,0.5); backdrop-filter: blur(3px);
+    display: none; opacity: 0; transition: opacity 0.25s;
+  }
+  .sidebar-overlay.open { display: block; opacity: 1; }
+  .sidebar {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 400;
+    width: min(320px, 88vw); background: var(--surface);
+    border-left: 1px solid var(--border); box-shadow: -4px 0 24px rgba(30,58,110,0.12);
+    transform: translateX(100%); transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+    display: flex; flex-direction: column;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-header {
+    padding: 56px 20px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--navy);
+  }
+  .sidebar-title { font-size: 15px; font-weight: 700; color: #fff; }
+  .sidebar-subtitle { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+  .sidebar-close {
+    background: rgba(255,255,255,0.15); border: none; color: #fff;
+    font-size: 16px; width: 30px; height: 30px; border-radius: 50%;
+    cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center;
+  }
+  .sidebar-list { flex: 1; overflow-y: auto; padding: 12px; background: var(--bg); }
+  .sidebar-ep {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; border-radius: 12px; cursor: pointer;
+    border: 1.5px solid transparent; margin-bottom: 8px;
+    background: var(--surface); transition: all 0.15s;
+  }
+  .sidebar-ep:hover { border-color: var(--border); }
+  .sidebar-ep.active { border-color: var(--blue); background: #ebf5fc; }
+  .sidebar-ep-badge {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 800; color: #fff; flex-shrink: 0;
+  }
+  .sidebar-ep-info { flex: 1; min-width: 0; }
+  .sidebar-ep-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 1px; }
+  .sidebar-ep.active .sidebar-ep-title { color: var(--navy); }
+  .sidebar-ep-meta { font-size: 11px; color: var(--muted); }
+  .sidebar-ep-check { color: var(--blue); font-size: 14px; opacity: 0; }
+  .sidebar-ep.active .sidebar-ep-check { opacity: 1; }
+
+  /* ── Header ── */
+  header { padding: 68px 20px 24px; position: relative; overflow: hidden; }
+  .ep-header-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: 20px; padding: 4px 12px; font-size: 10px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px;
+  }
+  .ep-title { font-size: 22px; font-weight: 800; margin-bottom: 4px; line-height: 1.2; }
+  .ep-theme { font-size: 12px; font-style: italic; margin-bottom: 14px; line-height: 1.5; opacity: 0.7; }
+  .ep-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+  .meta-pill {
+    background: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.8);
+    border-radius: 20px; padding: 3px 10px; font-size: 11px; color: var(--navy);
+    font-weight: 500; backdrop-filter: blur(4px);
+  }
+
+  /* ── Timeline ── */
+  .timeline-wrap { padding: 14px 20px 0; }
+  .timeline-bar { display: flex; height: 5px; border-radius: 4px; overflow: hidden; gap: 1px; background: var(--border); }
+  .tl-seg { border-radius: 2px; }
+  .tl-labels { display: flex; justify-content: space-between; margin-top: 4px; }
+  .tl-label { font-size: 10px; color: var(--muted); }
+
+  /* ── Bottom nav ── */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: var(--surface); border-top: 1px solid var(--border);
+    box-shadow: 0 -2px 12px rgba(30,58,110,0.08);
+    display: flex; padding: 8px 4px 20px;
+  }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 6px 2px; cursor: pointer; border: none; background: none;
+    color: var(--muted); font-size: 10px; font-weight: 600; font-family: inherit; transition: color 0.2s;
+  }
+  .nav-btn.active { color: var(--navy); }
+  .nav-icon { font-size: 18px; line-height: 1; }
+
+  /* ── Episode views ── */
+  .ep-view { display: none; }
+  .ep-view.active { display: block; }
+  .panel { display: none; padding: 16px 16px 0; }
+  .panel.active { display: block; }
+
+  .section-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 10px; margin-top: 20px;
+  }
+  .section-label:first-child { margin-top: 4px; }
+
+  /* ── Cards ── */
+  .card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px; margin-bottom: 10px; overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s; }
+  .card:hover { border-color: #a8c8e0; box-shadow: 0 2px 10px rgba(30,58,110,0.07); }
+  .card-header { display: flex; align-items: center; gap: 10px; padding: 13px 14px; cursor: pointer; user-select: none; }
+  .card-header:active { background: var(--light); }
+
+  .seg-num { font-size: 10px; font-weight: 700; color: var(--muted); width: 18px; flex-shrink: 0; }
+
+  .seg-tag { font-size: 9px; font-weight: 700; letter-spacing: 0.8px; padding: 3px 8px; border-radius: 20px; text-transform: uppercase; flex-shrink: 0; }
+  .tag-series   { background: #e0f5e8; color: #1a6e35; border: 1px solid #a8ddb8; }
+  .tag-intro    { background: #e0f5e8; color: #1a6e35; border: 1px solid #a8ddb8; }
+  .tag-location { background: #dff0fb; color: #1a5a8a; border: 1px solid #a0cee8; }
+  .tag-meet     { background: #ede0fb; color: #5a1a8a; border: 1px solid #c4a0e8; }
+  .tag-learn    { background: #e0f5e8; color: #1a6e35; border: 1px solid #a8ddb8; }
+  .tag-work     { background: #fbe8e0; color: #8a2a0a; border: 1px solid #e8b0a0; }
+  .tag-faq      { background: #fbf3e0; color: #7a5a0a; border: 1px solid #e8d0a0; }
+  .tag-build    { background: #dff8f8; color: #0a5a5a; border: 1px solid #a0dede; }
+  .tag-outro    { background: #f0f0f0; color: #555; border: 1px solid #ccc; }
+
+  .card-title-wrap { flex: 1; min-width: 0; }
+  .seg-title { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seg-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .chevron { color: var(--muted); font-size: 10px; flex-shrink: 0; transition: transform 0.2s; }
+  .chevron.open { transform: rotate(90deg); }
+
+  .card-body { display: none; border-top: 1.5px solid var(--border); padding: 12px 14px; background: #fafcfe; }
+  .card-body.open { display: block; }
+
+  .row { margin-bottom: 10px; }
+  .row:last-child { margin-bottom: 0; }
+  .row-key { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+  .row-val { font-size: 13px; color: var(--text); line-height: 1.55; }
+
+  .badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 5px; vertical-align: middle; }
+  .b-cam  { background: #ede0fb; color: #5a1a8a; border: 1px solid #c4a0e8; }
+  .b-vo   { background: #dff0fb; color: #1a5a8a; border: 1px solid #a0cee8; }
+  .b-work { background: #fbe8e0; color: #8a2a0a; border: 1px solid #e8b0a0; }
+  .b-tip  { background: #e0f5e8; color: #1a6e35; border: 1px solid #a8ddb8; }
+  .b-warn { background: #fbf3e0; color: #7a5a0a; border: 1px solid #e8d0a0; }
+
+  /* ── Script ── */
+  .script-box {
+    background: #f7fbff; border-radius: 0 10px 10px 0;
+    padding: 14px 16px; font-size: 13px; line-height: 1.8;
+    color: var(--text); margin-bottom: 12px; border-left: 3px solid var(--blue);
+  }
+  .script-box .direction { color: var(--muted); font-style: italic; font-size: 11px; display: block; margin-bottom: 8px; }
+  .script-box p { margin-bottom: 10px; }
+  .script-box p:last-child { margin-bottom: 0; }
+
+  /* ── FAQ ── */
+  .faq-section { margin-bottom: 20px; }
+  .faq-cat { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1.5px solid var(--border); }
+  .faq-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-dot { width: 5px; height: 5px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .faq-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+
+  /* ── Shots ── */
+  .shot-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+  .shot-cat { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .shot-item { font-size: 13px; color: var(--text); padding: 6px 0; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+  .shot-item:last-child { border-bottom: none; }
+  .shot-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── Formula ── */
+  .formula-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; padding: 13px 14px; margin-bottom: 8px; display: flex; gap: 12px; align-items: flex-start; }
+  .formula-num { font-size: 10px; font-weight: 800; width: 36px; flex-shrink: 0; padding-top: 2px; }
+  .formula-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .formula-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  .arc-wrap { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .arc-step { background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; padding: 7px 11px; font-size: 12px; color: var(--text); font-weight: 600; }
+  .arc-step.hl { color: white; border-color: transparent; }
+  .arc-arrow { color: var(--muted); display: flex; align-items: center; font-size: 13px; }
+
+  .tone-wrap { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tone-pill { border-radius: 20px; padding: 5px 13px; font-size: 11px; font-weight: 600; }
+
+  .series-nav { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 16px; }
+  .series-chip { background: var(--surface); border: 1.5px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 11px; font-weight: 600; color: var(--muted); }
+  .series-chip.cur { color: white; border-color: transparent; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="topbar-logo-icon">FFP</div>
+    <div class="topbar-logo-text">Fishy <span>Jobs</span></div>
+  </div>
+  <button class="ep-picker-btn" onclick="openSidebar()">
+    <span class="ep-dot" id="picker-dot" style="background:#3a9fd5"></span>
+    <span id="picker-label">EP 1 — Aquatic Plants</span>
+    <span style="opacity:0.6">☰</span>
+  </button>
+</div>
+
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div>
+      <div class="sidebar-title">Season 1</div>
+      <div class="sidebar-subtitle">5 Episodes · Fishy Jobs</div>
+    </div>
+    <button class="sidebar-close" onclick="closeSidebar()">✕</button>
+  </div>
+  <div class="sidebar-list" id="sidebar-list"></div>
+</div>
+
+<div id="app"></div>
+
+<nav class="bottom-nav" id="bottom-nav">
+  <button class="nav-btn active" data-tab="outline" onclick="switchTab('outline',this)"><span class="nav-icon">🎬</span>Outline</button>
+  <button class="nav-btn" data-tab="script" onclick="switchTab('script',this)"><span class="nav-icon">📝</span>Script</button>
+  <button class="nav-btn" data-tab="questions" onclick="switchTab('questions',this)"><span class="nav-icon">❓</span>Questions</button>
+  <button class="nav-btn" data-tab="shots" onclick="switchTab('shots',this)"><span class="nav-icon">📷</span>Shots</button>
+  <button class="nav-btn" data-tab="formula" onclick="switchTab('formula',this)"><span class="nav-icon">⚙️</span>Formula</button>
+</nav>
+
+<script>
+const EP_COLORS = [
+  {accent:'#1e6e35', light:'#e0f5e8', bg:'linear-gradient(135deg,#c8ecd6 0%,#dff5f0 100%)', dot:'#2a9e50'},
+  {accent:'#1a5a8a', light:'#dff0fb', bg:'linear-gradient(135deg,#c0dff5 0%,#d8eef8 100%)', dot:'#3a9fd5'},
+  {accent:'#8a2a0a', light:'#fbe8e0', bg:'linear-gradient(135deg,#f5c8b8 0%,#fbe0d0 100%)', dot:'#d4572a'},
+  {accent:'#5a1a8a', light:'#ede0fb', bg:'linear-gradient(135deg,#d8c0f5 0%,#e8d8f8 100%)', dot:'#8a4adc'},
+  {accent:'#0a5a5a', light:'#dff8f8', bg:'linear-gradient(135deg,#b8e8e8 0%,#d0f0f0 100%)', dot:'#2abfbf'}
+];
+
+const EPISODES = [
+{id:1,title:"Aquatic Plants",runtime:"13–15 min",
+ theme:'"Getting out from behind the desk and into the world of aquatic plants"',
+ pills:["⏱ 13–15 min","📍 Waterford Gardens","🌿 Emily & Emily","🎬 10 scenes","🎣 Series premiere"],
+ scenes:[
+  {num:"01",tag:"SERIES",tc:"tag-series",title:"Series Intro / Cold Open",time:"0:00–1:00",dur:"~1m",ci:0,
+   rows:[["Type","On camera — office desk"],["Script","Series and host intro; Jarret explains who he is and why this series exists"],["Key beat",'"Designing something and understanding how it works are two very different things"'],["Vibe","Warm, slightly self-deprecating, genuine"]]},
+  {num:"02",tag:"LOCATION",tc:"tag-location",title:"History of Waterford Gardens",time:"1:00–2:00",dur:"~1m",ci:1,
+   rows:[["Type",[["vo","b-vo"],"Voiceover over b-roll"]],["B-roll","Ponds, water lilies, greenhouse, walkways, historic structures"],["Key fact","Established 1895 — one of the oldest water lily farms in the US"],["Transition","Fitz Fish Ponds bringing it back to life"]]},
+  {num:"03",tag:"MEET",tc:"tag-meet",title:"Meet Emily & Emily",time:"2:00–3:00",dur:"~1m",ci:3,
+   rows:[["Type","On camera — introductions"],["Who","Two Emilys — the aquatic plant experts"],["Goal","Establish rapport; set up what Jarret is about to learn"],["Tone","Casual, natural — let it breathe"]]},
+  {num:"04",tag:"LEARN",tc:"tag-learn",title:"Greenhouse Walk / Plant Overview",time:"3:00–5:00",dur:"~2m",ci:0,
+   rows:[["Type",[["cam","b-cam"],"On camera walking"]],["Topics","Plant types overview; introduce overwintered lilies; seasonal prep"],["Shots","Walking and talking; close-ups of plant varieties"],["Key moment","Set up the overwintered lily tank"]]},
+  {num:"05",tag:"WORK",tc:"tag-work",title:"Power Washing the Lily Tank",time:"5:00–8:00",dur:"~3m",ci:2,
+   rows:[["Type",[["work","b-work"],"Hands-on"]],["What","Jarret puts on waders, gets in the tank, power washes it out"],["Show","Overwintered lilies up close — explain what overwintering means"],["Shots","Wader close-up, water spray, muddy hands, before/after"]]},
+  {num:"06",tag:"WORK",tc:"tag-work",title:"Repotting Overwintered Lilies",time:"8:00–11:00",dur:"~3m",ci:2,
+   rows:[["Type",[["work","b-work"],"Hands-on + Q&A"]],["What","Remove old soil, divide if needed, repot into fresh aquatic soil"],["Ask Emily","Why repot? How often? What soil? When will it bloom?"],["Key moment","Jarret getting it wrong, Emily correcting — keep it real"]]},
+  {num:"07",tag:"WORK",tc:"tag-work",title:"Placing Lilies into Clean Tank",time:"11:00–12:30",dur:"~1.5m",ci:2,
+   rows:[["Type","On camera"],["What","Lower repotted lilies back into the clean, filled tank"],["Ask Emily","How do you know the right depth?"],["Mood","Satisfying — the tank looks clean"]]},
+  {num:"08",tag:"WORK",tc:"tag-work",title:"Final Placement into the Pond",time:"12:30–14:00",dur:"~1.5m",ci:2,
+   rows:[["Type",[["cam","b-cam"],"Full circle moment"]],["What","Take a plant from the process and place it into a pond"],["Ask Emily","Where exactly? How far from the edge? Depth?"],["Key moment","The payoff — the whole episode has built to this"]]},
+  {num:"09",tag:"OUTRO",tc:"tag-outro",title:"Say Goodbye to the Crew",time:"14:00–14:20",dur:"~20s",ci:6,
+   rows:[["Type","On camera"],["What","Natural, candid goodbyes — keep it unscripted"],["Vibe","Warm, authentic — shows the real relationships"]]},
+  {num:"10",tag:"OUTRO",tc:"tag-outro",title:"Reflection / Conclusion",time:"14:20–15:00",dur:"~40s",ci:6,
+   rows:[["Type","On camera — solo"],["What","Jarret reflects on what he learned today"],["Key line","Connect back to the opening — desk vs. real world"],["Tease",'"Next time… we\'re getting our hands even dirtier."']]}
+ ],
+ durations:[1,1,1,2,3,3,1.5,1.5,0.33,0.67],
+ script:[
+  {label:"Series Opening — Office",lines:[
+   {d:"[Office — sitting at desk, working on a design]"},
+   {t:"\"Hey everyone, I'm Jarret Bernard. I was recently hired at Fitz Fish Ponds as a 3D Designer and Sales Associate. I come from a background in landscape design — so while there's definitely some overlap with ponds… there's also a lot that's completely new to me.\""},
+   {t:"(Slight smile)\n\"And typically… I'm sitting right here behind this desk… designing ponds. But the truth is… designing something and actually understanding how it all works… are two very different things.\""},
+   {t:"\"Which is exactly why I'm getting out from behind the desk… to learn from the people who actually know what they're doing. So we're starting a new series called Fishy Jobs. And fair warning… I may not always know what I'm doing. But that's kind of the point.\""}
+  ]},
+  {label:"Episode Intro — On Camera",lines:[
+   {t:"\"Today, we're diving into the world of aquatic plants. And there's no better place to learn than our Saddle River location — formerly the historic Waterford Gardens.\""}
+  ]},
+  {label:"Voiceover — B-Roll",lines:[
+   {d:"[B-roll: ponds, water lilies, walkways, greenhouse]"},
+   {t:"\"Originally established in 1895, Waterford Gardens is considered one of the oldest water lily farms in the country. Today, Fitz Fish Ponds has brought this historic property back to life — restoring the ponds, revitalizing the greenhouses, and continuing the tradition for a new generation.\""}
+  ]},
+  {label:"Reflection / Outro",lines:[
+   {d:"[Solo on camera — end of day, genuine]"},
+   {t:"\"Today was a lot more than I expected. I thought I knew what an aquatic plant was. Turns out… I knew about two percent of it.\""},
+   {t:"\"But that's what Fishy Jobs is about. Getting out from behind the desk. Getting your hands dirty. Learning the stuff you can't learn from a design screen. Next time… we're getting our hands even dirtier. See you then.\""}
+  ]}
+ ],
+ questions:[
+  {cat:"General",qs:["Why are aquatic plants important in a pond?","Do aquatic plants help keep water clean?","Do they help with algae control?","How many plants should someone have?","Are aquatic plants just for looks?","What are the easiest aquatic plants?","What are the most popular plants?"]},
+  {cat:"Types of Plants",qs:["What are the main categories of aquatic plants?","What's the difference between lilies and lotus?","What are marginal plants?","What are floating plants?","What are oxygenating plants?"]},
+  {cat:"Placement",qs:["How deep should water lilies be placed?","Do aquatic plants need full sun?","How far apart should they be spaced?","Can you have too many plants?","Best plants near waterfalls?"]},
+  {cat:"Maintenance",qs:["Do aquatic plants need fertilizer?","How often should you trim?","What happens in winter?","How often do you repot?","Signs of unhealthy plants?"]},
+  {cat:"Koi & Plants",qs:["Do koi eat plants?","How do you protect plants?","Best plants for koi ponds?"]},
+  {cat:"Repotting",qs:["Why repot lilies?","How often?","What soil do you use?","When do they bloom?"]}
+ ],
+ shots:[
+  {cat:"🎥 B-Roll — Property",items:["Pond reflections","Water lily close-ups","Greenhouse exterior","Historic walkways","Wide establishing shots"]},
+  {cat:"🎥 B-Roll — Plants",items:["Lily pads from above","Blooming flowers","Root systems close-up","Marginal plants at edge","Floating plant detail"]},
+  {cat:"🎬 On-Camera — Jarret",items:["Office desk intro","Walking greenhouse","Putting on waders","Hands in soil repotting","Placing lily in pond","Final reflection"]},
+  {cat:"🎬 Action — Process",items:["Power washing tank","Removing old soil","Repotting step-by-step","Lowering pot into water","Clean tank fill"]},
+  {cat:"🎬 Interviews — Emily",items:["Introduction / meet","Talking while walking","Demonstrating technique","Answering questions","Final goodbye"]}
+ ],
+ arc:["Learn","Discover","Work","Repot","Grow","Place","Reflect"],arcHl:[0,6],
+ formula:[
+  {t:"Series Intro (Ep 1 only)",d:"Jarret explains who he is, what Fishy Jobs is, and why it exists"},
+  {t:"Episode Topic Intro",d:"Set up what today's focus is and why it matters"},
+  {t:"Location / Context",d:"Where are we, what's the setting, why this place"},
+  {t:"Meet the Expert",d:"Introduce the staff member or specialist Jarret is learning from"},
+  {t:"Learning Segment",d:"Educational walkthrough — types, overview, context"},
+  {t:"Hands-On Work",d:"Jarret gets in there — waders, tools, dirt under the nails"},
+  {t:"Expert Q&A",d:"Beginner questions answered naturally during the work"},
+  {t:"Full Circle Moment",d:"The payoff — the thing you worked on is complete or placed"},
+  {t:"Wrap Up / Reflection",d:"Jarret reflects honestly, teases next episode"}
+ ],
+ tone:["Educational","Hands-on","Self-deprecating humor","Authentic / unscripted","Visual & relaxed pacing"]
+},
+
+{id:2,title:"Pond Service & Maintenance",runtime:"~25 min",
+ theme:'"Getting out from behind the desk and getting my hands dirty — literally"',
+ pills:["⏱ ~25 min","📍 Client Pond Location","🔧 Heavy hands-on","🎬 10 scenes","❓ 5 FAQs"],
+ scenes:[
+  {num:"01",tag:"INTRO",tc:"tag-intro",title:"Cold Open / Episode Intro",time:"0:00–1:30",dur:"~1.5m",ci:0,
+   rows:[["Type","On camera — at the pond location"],["Script","Jarret connects back to Ep 1, introduces today's topic with humor"],["Key beat",'"A pond that isn\'t maintained isn\'t a pond. It\'s a really expensive puddle."'],["Vibe","Confident but real — he's learning, not lecturing"]]},
+  {num:"02",tag:"LOCATION",tc:"tag-location",title:"Voiceover / B-Roll Context",time:"1:30–2:30",dur:"~1m",ci:1,
+   rows:[["Type",[["vo","b-vo"],"Voiceover over b-roll"]],["B-roll","Pond surface, filter systems, test kits, algae, pump close-ups"],["Key line",'"A healthy pond is a balancing act. Get one thing wrong and you feel it ripple through everything."'],["Transition","Sets up the four pillars covered today"]]},
+  {num:"03",tag:"MEET",tc:"tag-meet",title:"Meet the Expert",time:"2:30–3:30",dur:"~1m",ci:3,
+   rows:[["Type","On camera — introductions"],["Who","Fitz Fish Ponds service/maintenance expert"],["Goal","Establish rapport; Jarret admits he doesn't know this side of the job"],["Tone","Casual, funny if possible — set the expert up as the authority"]]},
+  {num:"04",tag:"LEARN",tc:"tag-learn",title:"Water Testing Walkthrough",time:"3:30–7:00",dur:"~3.5m",ci:0,
+   rows:[["Type",[["cam","b-cam"],"On camera + demo"]],["Topics","pH, ammonia, nitrite, nitrate, KH — what each means for fish health"],["Demo","Live water test; liquid kit and digital meter side by side"],["Key rule","Always test before treating — never guess and dose"],["Key moment","Jarret reacts to a bad reading — let it land naturally"]]},
+  {num:"05",tag:"WORK",tc:"tag-work",title:"Filter Maintenance",time:"7:00–12:00",dur:"~5m",ci:2,
+   rows:[["Type",[["work","b-work"],"Hands-on"]],["What","Pull filter media, show dirty vs healthy, clean it correctly"],["Warning",[["warn","b-warn"],"Never rinse bio media in tap water — kills the bacteria colony"]],["Key moment","Jarret does it wrong first — expert corrects him — keep it in"],["Shots","Close-up of media, water color change, before/after"]]},
+  {num:"06",tag:"WORK",tc:"tag-work",title:"Algae Management",time:"12:00–16:30",dur:"~4.5m",ci:2,
+   rows:[["Type",[["work","b-work"],"Hands-on + Q&A"]],["What","Manual string algae removal, then walk through how a UV clarifier works"],["Myth bust","Algaecides treat the symptom — explain nutrient overload instead"],["Ask expert","Is some algae actually okay? What's the tipping point?"],["Shots","Hands pulling algae, UV unit, green vs clear water comparison"]]},
+  {num:"07",tag:"WORK",tc:"tag-work",title:"Partial Water Change",time:"16:30–20:30",dur:"~4m",ci:2,
+   rows:[["Type",[["work","b-work"],"Hands-on"]],["What","Pond vac debris, drain 15%, dechlorinate, temperature match, refill"],["Warning",[["warn","b-warn"],"100% water change destroys the nitrogen cycle — partial only, always"]],["Ask expert","How does dechlorinator actually work?"],["Mood","Satisfying — pond visibly looks better by the end"]]},
+  {num:"08",tag:"FAQSEG",tc:"tag-faq",title:"Top 5 Viewer FAQs",time:"20:30–23:00",dur:"~2.5m",ci:4,
+   rows:[["Format","Jarret asks expert — quick fire, one question at a time"],["Q1","How often should I really be servicing my pond?"],["Q2","My water is green — what's the first thing I should do?"],["Q3","My fish are gasping at the surface — is that serious?"],["Q4","Can I just use tap water for a water change?"],["Q5","How do I know if my filter is actually doing its job?"]]},
+  {num:"09",tag:"OUTRO",tc:"tag-outro",title:"Say Goodbye to the Crew",time:"23:00–23:30",dur:"~30s",ci:6,
+   rows:[["Type","On camera — candid"],["What","Natural, unscripted goodbyes"],["Vibe","Show the team dynamic — these are real people Jarret works with"]]},
+  {num:"10",tag:"OUTRO",tc:"tag-outro",title:"Reflection & Next Episode Tease",time:"23:30–25:00",dur:"~1.5m",ci:6,
+   rows:[["Type","On camera — solo, end of day"],["What","Honest reflection on what surprised him and what he actually learned"],["Key line",'"If you\'re a pond owner putting off maintenance… please don\'t. Your fish will thank you."'],["Tease",'"Next time — we\'re not maintaining a pond. We\'re building one from scratch."']]}
+ ],
+ durations:[1.5,1,1,3.5,5,4.5,4,2.5,0.5,1.5],
+ script:[
+  {label:"Episode Intro — On Camera",lines:[
+   {d:"[On location — standing at the edge of a pond, tools visible in the background]"},
+   {t:"\"Last episode I was in the greenhouse… getting my hands dirty with aquatic plants. Today… it's a little different.\""},
+   {t:"\"Because today we're talking about pond service and maintenance — and honestly, this is one of those things that a lot of pond owners either don't know how to do… or just kind of hope they don't have to think about.\""},
+   {t:"\"But the truth is… a pond that isn't maintained isn't really a pond. It's just… a really expensive puddle waiting to go wrong. So today, I'm getting out from behind the desk again — and we're going to figure this out together.\""}
+  ]},
+  {label:"Voiceover — B-Roll",lines:[
+   {d:"[B-roll: pond surface, filter systems, test kits, pump, algae close-ups]"},
+   {t:"\"A healthy pond is a balancing act. Water quality, filtration, algae, aeration — every single element affects the others. Get one thing wrong, and you can feel it ripple through the whole system. And for the fish living in it… this isn't just aesthetics. It's life support.\""}
+  ]},
+  {label:"Reflection / Outro",lines:[
+   {d:"[Solo on camera — back at the pond, end of day, genuine]"},
+   {t:"\"Alright… so that was a lot. I think what surprised me most today was just… how much is actually going on in a pond that you never see. You look at it from the outside and it just looks like water. But underneath that — there's a whole system working to keep everything alive.\""},
+   {t:"\"If you're a pond owner and you've been putting off maintenance… please don't. Your fish will thank you. Next time on Fishy Jobs… we're not maintaining a pond. We're building one. From scratch. See you then.\""}
+  ]}
+ ],
+ questions:[
+  {cat:"Water Quality & Testing",qs:["What are the most important water parameters to test for?","How often should a pond owner be testing their water?","What does a bad reading look like — and what do you do?","Liquid test kit vs digital meter — what's the difference?","Number one mistake owners make when their water looks off?"]},
+  {cat:"Filtration",qs:["What's the difference between mechanical and biological filtration?","How do you clean a filter without killing beneficial bacteria?","How do you know when it's time to clean your filter?","What does healthy biological media look like vs needing replacing?","Can you over-clean a filter? What happens if you do?"]},
+  {cat:"Algae",qs:["What's the difference between green water and string algae?","What actually causes an algae bloom?","Do algaecides actually fix the problem, or just mask it?","How does a UV clarifier work — does every pond need one?","Is some algae actually okay or even healthy?"]},
+  {cat:"Water Changes",qs:["How often should someone be doing water changes?","Why only partial changes — what happens if you do 100%?","Why does tap water need to be treated before going in?","Why does the new water temperature need to match?","What tools make water changes easier?"]},
+  {cat:"General & Fish Health",qs:["What does a proper weekly maintenance routine look like?","How do you know if your fish are stressed by water conditions?","What are the first signs something is wrong before crisis?","Does feeding amount affect water quality?","What's the biggest thing pond owners overlook?"]}
+ ],
+ shots:[
+  {cat:"🎥 B-Roll — Pond",items:["Pond surface wide shot","Water close-up / ripples","Fish swimming beneath surface","Algae close-up (string & green)","Before / after water clarity"]},
+  {cat:"🎥 B-Roll — Equipment",items:["Test kit laid out","Digital meter reading","Filter media close-up","UV clarifier unit","Pump and plumbing","Pond vacuum in action"]},
+  {cat:"🎬 On-Camera — Jarret",items:["Standing at pond — intro","Running water test live","Pulling filter media out","Rinsing media correctly","Removing string algae","Running the pond vac","Solo reflection at end"]},
+  {cat:"🎬 Action — Process",items:["Water test color comparison","Dirty vs clean filter media","Dechlorinator being dosed","Water refill slow pour","Algae manual removal"]},
+  {cat:"🎬 Key Moments",items:["Jarret's reaction to a bad water test","First look inside the filter","Crystal clear water after change","Fish more active after","Full circle — pond healthy again"]}
+ ],
+ arc:["Arrive","Test","Filter","Algae","Water Change","Reflect"],arcHl:[0,5],
+ formula:[
+  {t:"Episode Intro on Location",d:"Jarret arrives, sets the topic, connects back to last episode"},
+  {t:"Context / Voiceover",d:"B-roll with VO — set the scene and explain why this topic matters"},
+  {t:"Meet the Expert",d:"Natural intro — Jarret admits what he doesn't know upfront"},
+  {t:"Learning Segment",d:"Walk through the theory — what, why, and what can go wrong"},
+  {t:"First Hands-On Task",d:"Jarret jumps in — guided, beginner mistakes welcome"},
+  {t:"Second Hands-On Task",d:"Deeper work — more complex, more Q&A woven in"},
+  {t:"Expert Q&A / FAQs",d:"Jarret asks the questions viewers are thinking"},
+  {t:"Full Circle Moment",d:"The payoff — the pond is healthier, the work is done and visible"},
+  {t:"Goodbyes",d:"Candid, unscripted — let the real personality come through"},
+  {t:"Reflection & Tease",d:"Solo Jarret — honest take, tease next episode"}
+ ],
+ tone:["Educational","Hands-on","Self-deprecating","Unscripted","Messier than Ep 1"]
+},
+
+{id:3,title:"Pond Construction",runtime:"~25 min",
+ theme:'"From a hole in the ground to a living, breathing pond"',
+ pills:["⏱ ~25 min","📍 Active Build Site","🏗️ Full construction day","🎬 10 scenes","💪 Most physical episode"],
+ scenes:[
+  {num:"01",tag:"INTRO",tc:"tag-intro",title:"Cold Open / Episode Intro",time:"0:00–1:30",dur:"~1.5m",ci:0,
+   rows:[["Type","On camera — at the build site, tools everywhere"],["Script","Jarret connects back to Ep 2, introduces construction as the foundation of everything"],["Key beat",'"Before you can have a pond worth maintaining… someone has to actually build it."'],["Vibe","High energy — this is the biggest day yet"]]},
+  {num:"02",tag:"LOCATION",tc:"tag-location",title:"Site Overview / Voiceover",time:"1:30–2:30",dur:"~1m",ci:1,
+   rows:[["Type",[["vo","b-vo"],"Voiceover over b-roll"]],["B-roll","Excavator, marked ground, liner rolls, piping, equipment layout"],["Key line",'"Every pond starts as a patch of dirt and a plan. What happens between that and the finished water feature is where the real craft lives."'],["Transition","Hands Jarret and expert off into the build"]]},
+  {num:"03",tag:"MEET",tc:"tag-meet",title:"Meet the Build Crew",time:"2:30–3:30",dur:"~1m",ci:3,
+   rows:[["Type","On camera — introductions"],["Who","Fitz Fish Ponds lead construction team"],["Goal","Introduce the crew; Jarret acknowledges he has zero construction experience"],["Tone","Respectful, funny — 'I design these, I don't build them'"]]},
+  {num:"04",tag:"LEARN",tc:"tag-learn",title:"Design to Reality Walkthrough",time:"3:30–6:00",dur:"~2.5m",ci:0,
+   rows:[["Type",[["cam","b-cam"],"On camera + demo"]],["Topics","How a 3D design translates to the ground; marking, grading, depth zones"],["Key moment","Jarret sees his own design type come to life — personal connection"],["Ask crew","What's the most common design mistake that causes build problems?"]]},
+  {num:"05",tag:"WORK",tc:"tag-work",title:"Excavation & Shaping",time:"6:00–10:00",dur:"~4m",ci:2,
+   rows:[["Type",[["work","b-work"],"Hands-on"]],["What","Help with digging, shaping the pond basin, creating depth shelves"],["Warning",[["warn","b-warn"],"Depth zones are critical — shallow shelves for plants, deeper zones for fish in winter"]],["Shots","Wide excavator shot, Jarret in the hole, depth measuring, shelf shaping"]]},
+  {num:"06",tag:"WORK",tc:"tag-work",title:"Liner Installation",time:"10:00–15:00",dur:"~5m",ci:2,
+   rows:[["Type",[["work","b-work"],"Hands-on + Q&A"]],["What","Roll out and set the liner; fold corners, weigh edges, check for wrinkles"],["Ask crew","What type of liner do you use and why? How long does it last?"],["Warning",[["warn","b-warn"],"Wrinkles in the liner cause long-term problems — take the time to get it right"]],["Shots","Liner being unrolled, team lifting it, Jarret inside smoothing it out"]]},
+  {num:"07",tag:"WORK",tc:"tag-work",title:"Plumbing & Equipment Install",time:"15:00–19:00",dur:"~4m",ci:2,
+   rows:[["Type",[["work","b-work"],"Hands-on"]],["What","Set skimmer, bottom drain, run plumbing to filter system, install pump"],["Ask crew","How do you size a pump for a pond?"],["Key moment","First fill of water — Jarret watches it come to life"]]},
+  {num:"08",tag:"FAQSEG",tc:"tag-faq",title:"Top 5 Build FAQs",time:"19:00–21:30",dur:"~2.5m",ci:4,
+   rows:[["Format","Jarret asks crew — quick fire, answered on site"],["Q1","How long does a pond build typically take?"],["Q2","How much does it cost to build a pond?"],["Q3","Can I DIY a pond or do I need a professional?"],["Q4","How deep should a pond be for koi?"],["Q5","What's the most common mistake homeowners make when planning a pond?"]]},
+  {num:"09",tag:"OUTRO",tc:"tag-outro",title:"Say Goodbye to the Crew",time:"21:30–22:00",dur:"~30s",ci:6,
+   rows:[["Type","On camera — candid, everyone dirty and tired"],["What","Genuine goodbyes — let the exhaustion and satisfaction show"],["Vibe","This was a real day's work — don't hide it"]]},
+  {num:"10",tag:"OUTRO",tc:"tag-outro",title:"Reflection — First Fill",time:"22:00–25:00",dur:"~3m",ci:6,
+   rows:[["Type",[["cam","b-cam"],"Solo at the pond's edge as water fills"]],["What","Jarret reflects while water slowly fills the finished pond"],["Key line",'"I\'ve designed ponds on a screen. But watching one actually fill up for the first time… that\'s something else."'],["Tease",'"Next time — we talk about the fish that are going to live in this thing."']]}
+ ],
+ durations:[1.5,1,1,2.5,4,5,4,2.5,0.5,3],
+ script:[
+  {label:"Episode Intro — On Camera",lines:[
+   {d:"[On site — dirt, equipment, marked ground all around]"},
+   {t:"\"Last episode we kept a pond alive. Today… we're going to build one. From scratch.\""},
+   {t:"\"I've been designing ponds for a while now. I know what they're supposed to look like on screen. But I've never actually been on site for a build from day one. Today that changes.\""}
+  ]},
+  {label:"Reflection / Outro",lines:[
+   {d:"[Sitting at pond's edge as water slowly fills — golden hour if possible]"},
+   {t:"\"I've designed ponds on a screen. I've looked at them in 3D. I've sent clients walkthroughs of what their backyard is going to look like.\""},
+   {t:"\"But watching one actually fill up for the first time… that's something else. Next time on Fishy Jobs — we talk about the fish that are going to live in this thing.\""}
+  ]}
+ ],
+ questions:[
+  {cat:"Planning & Design",qs:["How does a design translate from screen to the ground?","What's the most common design mistake that causes build problems?","How do you determine the right size pond for a property?","What permits or approvals might someone need?","How long does a full pond build take?"]},
+  {cat:"Excavation",qs:["Why are depth shelves so important?","How deep should a pond be for koi specifically?","What happens if the ground has rocks or clay?","How do you handle drainage around the pond?","What's the grade/slope you need around the edges?"]},
+  {cat:"Liner & Shell",qs:["What type of liner do you use and why?","How long does a quality liner last?","What causes liner failure over time?","How do you handle corners and edges cleanly?","What's under the liner — any underlayment?"]},
+  {cat:"Plumbing & Equipment",qs:["How do you size a pump correctly for a given pond?","What's the difference between a skimmer and a bottom drain?","How do you plan the plumbing route before digging?","What filter system do you typically spec for a new build?","What happens if plumbing is done wrong?"]},
+  {cat:"Cost & DIY",qs:["What's a realistic budget for a backyard pond?","What can a homeowner realistically DIY vs what needs a pro?","What's the biggest cost driver in a pond build?","How do material choices affect long-term cost?","What's the ROI of a pond on a property?"]}
+ ],
+ shots:[
+  {cat:"🎥 B-Roll — Site",items:["Bare ground / marked layout","Excavator in action","Depth shelves taking shape","Liner rolls on site","Equipment laid out"]},
+  {cat:"🎬 On-Camera — Jarret",items:["Standing in the hole","Holding the liner","Watching first water fill","Running plumbing","Measuring depth zones"]},
+  {cat:"🎬 Key Moments",items:["First shovel of dirt","Liner touching ground","Pump turning on first time","Water beginning to fill","Jarret's face watching it fill"]}
+ ],
+ arc:["Arrive at Site","Excavate","Liner","Plumbing","First Fill","Reflect"],arcHl:[0,5],
+ formula:[{t:"Same Fishy Jobs formula",d:"Arrive → Context → Meet crew → Learn → Work → Work → FAQs → Full circle → Goodbyes → Reflect"}],
+ tone:["Educational","Most physical episode","Self-deprecating","Authentic","High energy"]
+},
+
+{id:4,title:"Koi Fish",runtime:"~20 min",
+ theme:'"Learning to see koi the way the experts do"',
+ pills:["⏱ ~20 min","📍 Fitz Fish Ponds Koi Facility","🐟 Koi specialist","🎬 9 scenes","👁️ Very visual episode"],
+ scenes:[
+  {num:"01",tag:"INTRO",tc:"tag-intro",title:"Cold Open / Episode Intro",time:"0:00–1:30",dur:"~1.5m",ci:0,
+   rows:[["Type","On camera — standing at a koi pond, fish visible below"],["Script","Jarret references the pond they built in Ep 3; now it needs fish"],["Key beat",'"I thought a fish was a fish. I was very wrong."'],["Vibe","Curious and a little humbled — koi culture runs deep"]]},
+  {num:"02",tag:"LOCATION",tc:"tag-location",title:"Koi Facility Overview / Voiceover",time:"1:30–2:30",dur:"~1m",ci:1,
+   rows:[["Type",[["vo","b-vo"],"Voiceover over b-roll"]],["B-roll","Koi tanks, fish swimming, color patterns, facility wide shots"],["Key line",'"Koi keeping is one of the oldest and most refined hobbies in the world."'],["Transition","Frames koi as art, not just pets"]]},
+  {num:"03",tag:"MEET",tc:"tag-meet",title:"Meet the Koi Expert",time:"2:30–3:30",dur:"~1m",ci:3,
+   rows:[["Type","On camera — introductions"],["Who","Fitz Fish Ponds koi specialist"],["Goal","Expert establishes credibility; Jarret asks a naive question immediately"],["Tone","Jarret admits he can barely tell koi apart — keep it honest"]]},
+  {num:"04",tag:"LEARN",tc:"tag-learn",title:"Koi Varieties & Grading",time:"3:30–7:00",dur:"~3.5m",ci:0,
+   rows:[["Type",[["cam","b-cam"],"Walking the tanks"]],["Topics","Main koi varieties, pattern names, what makes a high-grade vs low-grade fish"],["Demo","Expert pulls fish to show up close — color, pattern, body shape"],["Key moment","Jarret tries to grade a koi — expert corrects him"]]},
+  {num:"05",tag:"WORK",tc:"tag-work",title:"Handling & Health Assessment",time:"7:00–11:00",dur:"~4m",ci:2,
+   rows:[["Type",[["work","b-work"],"Hands-on"]],["What","Learn to safely handle koi; assess health by fins, slime coat, behavior"],["Warning",[["warn","b-warn"],"Koi are fragile when handled wrong — wet hands, no squeezing, minimal air time"]],["Shots","Jarret's face first time holding a koi, close-up of fins and scales"]]},
+  {num:"06",tag:"LEARN",tc:"tag-learn",title:"Koi Nutrition & Feeding",time:"11:00–14:00",dur:"~3m",ci:0,
+   rows:[["Type","On camera + demo"],["Topics","What koi eat, how much, seasonal feeding changes, what to avoid"],["Demo","Feeding session — show fish behavior, how to read feeding response"],["Key insight","Overfeeding is one of the top causes of poor water quality"]]},
+  {num:"07",tag:"FAQSEG",tc:"tag-faq",title:"Top 5 Koi FAQs",time:"14:00–16:30",dur:"~2.5m",ci:4,
+   rows:[["Format","Quick fire — Jarret asks expert while watching fish swim"],["Q1","How long do koi live?"],["Q2","How big do koi actually get?"],["Q3","Can koi live with other fish?"],["Q4","How do you know if a koi is sick?"],["Q5","What's the minimum pond size for koi?"]]},
+  {num:"08",tag:"OUTRO",tc:"tag-outro",title:"Say Goodbye",time:"16:30–17:00",dur:"~30s",ci:6,
+   rows:[["Type","On camera — candid"],["What","Jarret says goodbye — maybe names a favourite fish"],["Vibe","Lighter energy — koi are beautiful, let the moment breathe"]]},
+  {num:"09",tag:"OUTRO",tc:"tag-outro",title:"Reflection / Tease",time:"17:00–20:00",dur:"~3m",ci:6,
+   rows:[["Type","On camera — solo"],["What","Jarret reflects on koi as more than pets — the culture, the craft, the commitment"],["Key line",'"I came in thinking koi were just fancy goldfish. I\'m leaving thinking they might be the most misunderstood animal in the hobby."'],["Tease",'"Last episode of the season — Aquascaping. We\'re making a pond look like a work of art."']]}
+ ],
+ durations:[1.5,1,1,3.5,4,3,2.5,0.5,3],
+ script:[
+  {label:"Episode Intro — On Camera",lines:[
+   {d:"[Standing at a koi pond — fish visible just below the surface]"},
+   {t:"\"Last episode we built the pond. Now it needs something to live in it. I thought a fish was a fish. I was very, very wrong.\""},
+   {t:"\"Koi keeping is a world unto itself. There's history, there's artistry, there's a grading system I did not know existed until this week. Today I'm learning to see koi the way the experts do.\""}
+  ]},
+  {label:"Reflection / Outro",lines:[
+   {d:"[Solo — sitting quietly by a koi pond, fish gliding past]"},
+   {t:"\"I came into today thinking koi were fancy goldfish. That's it. That's genuinely what I thought.\""},
+   {t:"\"I'm leaving today thinking they might be the most misunderstood animal in this whole hobby. Last episode of the season next time. Aquascaping — we're making a pond look like an actual work of art. Don't miss it.\""}
+  ]}
+ ],
+ questions:[
+  {cat:"Varieties & Grading",qs:["What are the main koi varieties we should know?","What makes a koi high-grade vs low-grade?","What do pattern names like Kohaku, Sanke, Showa mean?","How do judges score koi at competitions?","Is there a big price difference between grades?"]},
+  {cat:"Health & Handling",qs:["How do you safely hold a koi?","What does a healthy koi look like vs an unhealthy one?","What should you look at — fins, scales, slime coat?","How do you spot disease early?","What do you do if you find a sick koi?"]},
+  {cat:"Feeding & Nutrition",qs:["What do koi actually eat?","How much should you feed them and how often?","How does feeding change with the seasons?","What should you never feed koi?","How does overfeeding affect water quality?"]},
+  {cat:"Pond Requirements",qs:["What's the minimum pond size for koi?","How many koi can you have per gallon?","Do koi need special filtration?","What water temperature range do koi need?","Can koi survive winter outdoors?"]},
+  {cat:"General",qs:["How long do koi live?","How big do koi get?","Can koi live with other fish?","Do koi recognize their owners?","What's the most expensive koi ever sold?"]}
+ ],
+ shots:[
+  {cat:"🎥 B-Roll — Koi",items:["Fish gliding in clear water","Color pattern close-ups","Feeding frenzy from above","Koi in a show tank","Multiple fish together"]},
+  {cat:"🎬 On-Camera — Jarret",items:["Watching fish before intro","Trying to hold koi","Attempting to grade a fish","Feeding for first time","Solo reflection at pond"]},
+  {cat:"🎬 Key Moments",items:["Expert revealing fish grade","Jarret's face holding koi","Feeding response close-up","Fish gliding in golden hour light"]}
+ ],
+ arc:["Arrive","Learn varieties","Handle fish","Feeding","FAQs","Reflect"],arcHl:[0,5],
+ formula:[{t:"Same Fishy Jobs formula",d:"Arrive → Context → Meet expert → Learn → Hands-on → Learn → FAQs → Goodbyes → Reflect"}],
+ tone:["Educational","Visually stunning","Self-deprecating","Authentic","Quieter & more reflective"]
+},
+
+{id:5,title:"Aquascaping",runtime:"~20 min",
+ theme:'"Turning a pond into a work of art"',
+ pills:["⏱ ~20 min","📍 Fitz Fish Ponds Showcase Pond","🎨 Creative & visual","🎬 9 scenes","🏆 Season 1 Finale"],
+ scenes:[
+  {num:"01",tag:"INTRO",tc:"tag-intro",title:"Cold Open / Season Finale Intro",time:"0:00–1:30",dur:"~1.5m",ci:0,
+   rows:[["Type","On camera — in front of a stunning finished aquascape"],["Script","Season wrap — Jarret reflects on the journey before diving into aquascaping"],["Key beat",'"We\'ve maintained one. We\'ve built one. We\'ve stocked one. Now we make one beautiful."'],["Vibe","Elevated, proud, full-circle energy — this is the finale"]]},
+  {num:"02",tag:"LOCATION",tc:"tag-location",title:"Aquascaping Overview / Voiceover",time:"1:30–2:30",dur:"~1m",ci:1,
+   rows:[["Type",[["vo","b-vo"],"Voiceover over b-roll"]],["B-roll","Stunning pond shots, stone arrangements, plant combos, koi among plants"],["Key line",'"Aquascaping is where horticulture, design, and engineering meet. It\'s the art of making a living ecosystem look intentional."'],["Transition","Sets up aquascaping as the final skill to learn"]]},
+  {num:"03",tag:"MEET",tc:"tag-meet",title:"Meet the Aquascaping Expert",time:"2:30–3:30",dur:"~1m",ci:3,
+   rows:[["Type","On camera — introductions"],["Who","Fitz Fish Ponds lead aquascaping designer"],["Goal","Jarret connects his design background — this hits closest to home"],["Tone","Collaborative — Jarret has opinions here, not just questions"]]},
+  {num:"04",tag:"LEARN",tc:"tag-learn",title:"Design Principles Walkthrough",time:"3:30–7:00",dur:"~3.5m",ci:0,
+   rows:[["Type",[["cam","b-cam"],"Walking a showcase pond"]],["Topics","Focal points, layers, texture contrast, colour theory in plants, rule of odds"],["Demo","Expert deconstructs an existing aquascape — why each decision was made"],["Key moment","Jarret looks at his own design instincts through a new lens"]]},
+  {num:"05",tag:"WORK",tc:"tag-work",title:"Stone Placement & Hardscape",time:"7:00–11:00",dur:"~4m",ci:2,
+   rows:[["Type",[["work","b-work"],"Hands-on"]],["What","Place and arrange stones at the pond edge — natural-looking groupings"],["Tip",[["tip","b-tip"],"Odd numbers of stones always look more natural — the rule of odds"]],["Key moment","Jarret's design brain kicks in — he has thoughts and the expert engages them"]]},
+  {num:"06",tag:"WORK",tc:"tag-work",title:"Plant Composition",time:"11:00–15:00",dur:"~4m",ci:2,
+   rows:[["Type",[["work","b-work"],"Hands-on + Q&A"]],["What","Select and place marginals, emergent plants, and floating plants for the composition"],["Ask expert","How do you balance colour, texture, and height in a planting scheme?"],["Key moment","Jarret places something the expert moves — productive disagreement on camera"]]},
+  {num:"07",tag:"FAQSEG",tc:"tag-faq",title:"Top 5 Aquascaping FAQs",time:"15:00–17:00",dur:"~2m",ci:4,
+   rows:[["Format","Conversational — Jarret and expert looking at the finished scape together"],["Q1","Can any pond be aquascaped, or does it need to be designed for it?"],["Q2","How much does professional aquascaping cost?"],["Q3","How do you maintain an aquascape so it doesn't get overgrown?"],["Q4","What plants work best for aquascaping with koi?"],["Q5","Is aquascaping a one-time job or ongoing?"]]},
+  {num:"08",tag:"OUTRO",tc:"tag-outro",title:"Season 1 Wrap — Say Goodbye",time:"17:00–17:30",dur:"~30s",ci:6,
+   rows:[["Type","On camera — full team if possible"],["What","Bigger goodbye than other episodes — acknowledge the whole season"],["Vibe","Warm, grateful, genuine — this is a real milestone"]]},
+  {num:"09",tag:"OUTRO",tc:"tag-outro",title:"Season Finale Reflection",time:"17:30–20:00",dur:"~2.5m",ci:6,
+   rows:[["Type","On camera — solo, in front of the finished aquascape"],["What","Full season reflection — what Jarret learned, how his view of ponds changed, what's next"],["Key line",'"I started this season sitting at a desk, designing ponds I\'d never worked on. I\'m ending it standing next to one I helped build, stock, maintain, and design."'],["Tease","Tease Season 2 — keep it vague but exciting"]]}
+ ],
+ durations:[1.5,1,1,3.5,4,4,2,0.5,2.5],
+ script:[
+  {label:"Season Finale Intro — On Camera",lines:[
+   {d:"[Standing in front of a beautifully finished aquascape]"},
+   {t:"\"We've maintained a pond. Built a pond. Learned about the fish that live in them. Now we make one beautiful.\""},
+   {t:"\"Aquascaping is the part of pond design that honestly excites me the most — because this is where my background in landscape design and the pond world actually meet. Plants, stone, composition, colour. It's design — but the design is alive. This is the season finale. Let's make it count.\""}
+  ]},
+  {label:"Season Finale Reflection",lines:[
+   {d:"[Solo — standing in front of the finished aquascape, golden hour]"},
+   {t:"\"I started this season sitting at a desk. Designing ponds I'd never actually worked on. I'm ending it standing next to a pond I helped build. Helped stock. Helped maintain. And now helped design in real life — not on a screen.\""},
+   {t:"\"Season 1 of Fishy Jobs is done. And I genuinely don't know what I was thinking sitting behind that desk for so long.\""},
+   {t:"(Smile)\n\"Season 2 is coming. We're going deeper. See you then.\""}
+  ]}
+ ],
+ questions:[
+  {cat:"Design Principles",qs:["What are the core principles of aquascaping?","How do you create a focal point in a pond design?","What is the rule of odds and why does it work?","How do you layer plants for depth and texture?","How do you use colour theory in plant selection?"]},
+  {cat:"Hardscape",qs:["What types of stone work best for pond aquascaping?","How do you make stone placement look natural, not stacked?","What's the rule of thumb for stone size relative to pond size?","How do you secure stones so they don't shift?","Can you mix different stone types?"]},
+  {cat:"Plants & Composition",qs:["How do you balance marginals, emergents, and floaters?","What plants work best with koi — they won't be eaten?","How do you plan for seasonal plant changes?","How do you stop plants from overtaking the design?","What's your go-to plant combination for a wow factor?"]},
+  {cat:"Maintenance",qs:["How do you maintain an aquascape so it stays intentional?","How often does a full aquascape need refreshing?","What's the biggest mistake people make maintaining an aquascape?","Does an aquascape get better or worse over time?","What do you do when plants die or get eaten?"]},
+  {cat:"Cost & Professional Work",qs:["What does professional aquascaping cost?","Can a homeowner DIY aquascaping or does it need a pro?","What's the most impactful thing you can do on a small budget?","Is aquascaping a one-time job or ongoing service?","How do you find a qualified aquascaping designer?"]}
+ ],
+ shots:[
+  {cat:"🎥 B-Roll — Aquascape",items:["Finished scape wide shot","Stone groupings close-up","Plant texture details","Water surface reflections","Koi swimming through plants"]},
+  {cat:"🎬 On-Camera — Jarret",items:["Season finale opening","Placing and assessing stones","Plant selection process","Stepping back to assess","Final solo reflection"]},
+  {cat:"🎬 Key Moments",items:["Before & after of the scape","Jarret and expert disagreeing (keep it!)","First look at finished composition","Golden hour finale shot"]}
+ ],
+ arc:["Arrive","Learn principles","Hardscape","Plant composition","FAQs","Season finale"],arcHl:[0,5],
+ formula:[{t:"Same Fishy Jobs formula",d:"Arrive → Context → Meet expert → Learn → Work → Work → FAQs → Season goodbye → Full season reflection"}],
+ tone:["Educational","Creative & visual","Collaborative","Authentic","Elevated — season finale energy"]
+}
+]; // end EPISODES
+
+// Scene color index → actual color
+const SCENE_COLORS = ['#2a9e50','#3a9fd5','#d4572a','#8a4adc','#c8921a','#2abfbf','#7a8a9a'];
+
+let currentEp = 0;
+
+function renderVal(vals) {
+  let html = '';
+  vals.forEach(v => {
+    if(Array.isArray(v) && v.length===2 && typeof v[0]==='string' && typeof v[1]==='string') {
+      html += `<span class="badge b-${v[0]}">${v[0]}</span>${v[1]}`;
+    } else { html += v; }
+  });
+  return html;
+}
+
+function toggleCard(id) {
+  document.getElementById('cb-'+id).classList.toggle('open');
+  document.getElementById('ch-'+id).classList.toggle('open');
+}
+
+function openSidebar() {
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('sidebar').classList.add('open');
+}
+function closeSidebar() {
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('sidebar').classList.remove('open');
+}
+
+function selectEpisode(idx) {
+  currentEp = idx;
+  const ep = EPISODES[idx];
+  const c = EP_COLORS[idx];
+  document.querySelectorAll('.sidebar-ep').forEach((el,i) => el.classList.toggle('active', i===idx));
+  document.getElementById('picker-dot').style.background = c.dot;
+  document.getElementById('picker-label').textContent = `EP ${ep.id} — ${ep.title}`;
+  document.querySelectorAll('.ep-view').forEach((el,i) => el.classList.toggle('active', i===idx));
+  // reset to outline
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-tab="outline"]').classList.add('active');
+  document.querySelectorAll('.ep-view.active .panel').forEach(p => p.classList.remove('active'));
+  const op = document.getElementById(`panel-outline-${idx}`);
+  if(op) op.classList.add('active');
+  closeSidebar();
+  window.scrollTo(0,0);
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if(el) el.classList.add('active');
+  const view = document.getElementById('ep-view-'+currentEp);
+  if(!view) return;
+  view.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const t = view.querySelector('#panel-'+name+'-'+currentEp);
+  if(t) t.classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// Build sidebar
+function buildSidebar() {
+  const list = document.getElementById('sidebar-list');
+  EPISODES.forEach((ep,i) => {
+    const c = EP_COLORS[i];
+    const div = document.createElement('div');
+    div.className = 'sidebar-ep'+(i===0?' active':'');
+    div.id = 'sidebar-ep-'+i;
+    div.onclick = () => selectEpisode(i);
+    div.innerHTML = `
+      <div class="sidebar-ep-badge" style="background:${c.dot}">EP${ep.id}</div>
+      <div class="sidebar-ep-info">
+        <div class="sidebar-ep-title">${ep.title}</div>
+        <div class="sidebar-ep-meta">${ep.runtime}</div>
+      </div>
+      <div class="sidebar-ep-check">✓</div>`;
+    list.appendChild(div);
+  });
+}
+
+// Build all episodes
+function buildAll() {
+  const app = document.getElementById('app');
+  EPISODES.forEach((ep,ei) => {
+    const c = EP_COLORS[ei];
+    const view = document.createElement('div');
+    view.className = 'ep-view'+(ei===0?' active':'');
+    view.id = 'ep-view-'+ei;
+
+    // Header
+    const hdr = document.createElement('header');
+    hdr.style.background = c.bg;
+    hdr.innerHTML = `
+      <div class="ep-header-badge" style="background:${c.light};color:${c.accent}">
+        Fishy Jobs · S1 · EP ${ep.id}
+      </div>
+      <div class="ep-title" style="color:${c.accent}">${ep.title}</div>
+      <div class="ep-theme" style="color:${c.accent}">${ep.theme}</div>
+      <div class="ep-meta">${ep.pills.map(p=>`<span class="meta-pill">${p}</span>`).join('')}</div>`;
+    view.appendChild(hdr);
+
+    // Timeline
+    const tlW = document.createElement('div');
+    tlW.className = 'timeline-wrap';
+    const tlB = document.createElement('div');
+    tlB.className = 'timeline-bar';
+    ep.durations.forEach((d,i) => {
+      const s = document.createElement('div');
+      s.className = 'tl-seg';
+      s.style.cssText = `flex:${d};background:${SCENE_COLORS[ep.scenes[i].ci]};opacity:0.75;`;
+      tlB.appendChild(s);
+    });
+    tlW.appendChild(tlB);
+    tlW.innerHTML += `<div class="tl-labels"><span class="tl-label">0:00</span><span class="tl-label">${ep.runtime}</span></div>`;
+    view.appendChild(tlW);
+
+    // OUTLINE
+    const pOut = document.createElement('div');
+    pOut.className = 'panel active';
+    pOut.id = `panel-outline-${ei}`;
+    let oh = '<div class="section-label">Scenes</div>';
+    ep.scenes.forEach((s,si) => {
+      const uid = `${ei}-${si}`;
+      const rh = s.rows.map(([k,...v]) =>
+        `<div class="row"><div class="row-key">${k}</div><div class="row-val">${renderVal(v)}</div></div>`
+      ).join('');
+      oh += `<div class="card">
+        <div class="card-header" onclick="toggleCard('${uid}')">
+          <span class="seg-num">${s.num}</span>
+          <span class="seg-tag ${s.tc}">${s.tag}</span>
+          <div class="card-title-wrap">
+            <div class="seg-title">${s.title}</div>
+            <div class="seg-time">${s.time} · ${s.dur}</div>
+          </div>
+          <span class="chevron" id="ch-${uid}">▶</span>
+        </div>
+        <div class="card-body" id="cb-${uid}">${rh}</div>
+      </div>`;
+    });
+    pOut.innerHTML = oh;
+    view.appendChild(pOut);
+
+    // SCRIPT
+    const pScr = document.createElement('div');
+    pScr.className = 'panel';
+    pScr.id = `panel-script-${ei}`;
+    let sh = '';
+    ep.script.forEach(block => {
+      const lh = block.lines.map(l => l.d
+        ? `<span class="direction">${l.d}</span>`
+        : `<p>${l.t.replace(/\n/g,'<br>')}</p>`
+      ).join('');
+      sh += `<div class="section-label">${block.label}</div>
+        <div class="script-box" style="border-left-color:${c.accent}">${lh}</div>`;
+    });
+    pScr.innerHTML = sh;
+    view.appendChild(pScr);
+
+    // QUESTIONS
+    const pQ = document.createElement('div');
+    pQ.className = 'panel';
+    pQ.id = `panel-questions-${ei}`;
+    pQ.innerHTML = ep.questions.map(cat => `
+      <div class="faq-section">
+        <div class="faq-cat" style="color:${c.accent}">${cat.cat}</div>
+        ${cat.qs.map(q=>`<div class="faq-item">
+          <div class="faq-dot" style="background:${c.dot}"></div>
+          <div class="faq-text">${q}</div>
+        </div>`).join('')}
+      </div>`).join('');
+    view.appendChild(pQ);
+
+    // SHOTS
+    const pSh = document.createElement('div');
+    pSh.className = 'panel';
+    pSh.id = `panel-shots-${ei}`;
+    pSh.innerHTML = ep.shots.map(cat => `
+      <div class="shot-card">
+        <div class="shot-cat">${cat.cat}</div>
+        ${cat.items.map(it=>`<div class="shot-item">
+          <span class="shot-dot" style="background:${c.dot}"></span>${it}
+        </div>`).join('')}
+      </div>`).join('');
+    view.appendChild(pSh);
+
+    // FORMULA
+    const pF = document.createElement('div');
+    pF.className = 'panel';
+    pF.id = `panel-formula-${ei}`;
+    const arcH = ep.arc.map((s,i) => {
+      const hl = ep.arcHl.includes(i);
+      const arr = i<ep.arc.length-1 ? '<div class="arc-arrow">→</div>' : '';
+      return `<div class="arc-step${hl?' hl':''}" style="${hl?`background:${c.dot}`:''}">${s}</div>${arr}`;
+    }).join('');
+    const formH = ep.formula.map((f,fi) => `
+      <div class="formula-card">
+        <div class="formula-num" style="color:${c.dot}">${String(fi+1).padStart(2,'0')}</div>
+        <div><div class="formula-title">${f.t}</div><div class="formula-desc">${f.d}</div></div>
+      </div>`).join('');
+    const toneH = ep.tone.map(t =>
+      `<span class="tone-pill" style="background:${c.light};color:${c.accent};border:1px solid ${c.dot}44">${t}</span>`
+    ).join('');
+    pF.innerHTML = `
+      <div class="section-label">Story Arc</div>
+      <div class="arc-wrap">${arcH}</div>
+      <div class="section-label" style="margin-top:20px">Episode Steps</div>
+      ${formH}
+      <div class="section-label">Tone</div>
+      <div class="tone-wrap">${toneH}</div>`;
+    view.appendChild(pF);
+
+    app.appendChild(view);
+
+    // open first scene
+    setTimeout(() => {
+      const b = document.getElementById(`cb-${ei}-0`);
+      const ch = document.getElementById(`ch-${ei}-0`);
+      if(b) b.classList.add('open');
+      if(ch) ch.classList.add('open');
+    }, 30);
+  });
+}
+
+buildSidebar();
+buildAll();
+</script>
+</body>
+</html>

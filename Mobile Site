@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Episode 2 — Pond Service & Maintenance</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; padding-bottom: 90px; }
+
+  /* ── Header ── */
+  header {
+    background: linear-gradient(135deg, #0a2a3d 0%, #0a3d2a 100%);
+    padding: 52px 20px 20px;
+    position: relative; overflow: hidden;
+  }
+  header::before {
+    content: ''; position: absolute; top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(88,166,255,0.18) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .ep-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #58a6ff; margin-bottom: 6px; }
+  .ep-title { font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 4px; line-height: 1.2; }
+  .ep-theme { font-size: 12px; color: #8b949e; font-style: italic; margin-bottom: 12px; line-height: 1.5; }
+  .ep-meta  { display: flex; gap: 8px; flex-wrap: wrap; }
+  .meta-pill { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 20px; padding: 3px 10px; font-size: 11px; color: #cdd9e5; }
+
+  /* ── Timeline ── */
+  .timeline-wrap { padding: 14px 20px 0; }
+  .timeline-bar { display: flex; height: 5px; border-radius: 4px; overflow: hidden; gap: 1px; }
+  .tl-seg { border-radius: 2px; }
+  .tl-labels { display: flex; justify-content: space-between; margin-top: 4px; }
+  .tl-label { font-size: 10px; color: #484f58; }
+
+  /* ── Bottom nav ── */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: #161b22; border-top: 1px solid #21262d;
+    display: flex; padding: 8px 4px 20px;
+  }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 6px 2px; cursor: pointer; border: none; background: none;
+    color: #6e7681; font-size: 10px; font-weight: 500; font-family: inherit;
+    transition: color 0.2s;
+  }
+  .nav-btn.active { color: #58a6ff; }
+  .nav-icon { font-size: 18px; line-height: 1; }
+
+  /* ── Panels ── */
+  .panel { display: none; padding: 16px 16px 0; }
+  .panel.active { display: block; }
+
+  /* ── Section label ── */
+  .section-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #6e7681; margin-bottom: 10px; margin-top: 20px; }
+  .section-label:first-child { margin-top: 4px; }
+
+  /* ── Cards ── */
+  .card { background: #161b22; border: 1px solid #21262d; border-radius: 14px; margin-bottom: 12px; overflow: hidden; }
+  .card-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px; cursor: pointer; user-select: none; }
+  .seg-num { font-size: 10px; font-weight: 700; color: #484f58; width: 18px; flex-shrink: 0; }
+  .seg-tag { font-size: 9px; font-weight: 700; letter-spacing: 0.8px; padding: 3px 8px; border-radius: 20px; text-transform: uppercase; flex-shrink: 0; }
+  .tag-intro    { background: #1a3a0a; color: #3fb950; border: 1px solid #2d6e1a; }
+  .tag-location { background: #0d2444; color: #58a6ff; border: 1px solid #1f4070; }
+  .tag-meet     { background: #2a1a3a; color: #bc8cff; border: 1px solid #4a2a6e; }
+  .tag-learn    { background: #0d3b2e; color: #3fb950; border: 1px solid #1f5c38; }
+  .tag-work     { background: #3b1a0d; color: #f78166; border: 1px solid #6e2a1a; }
+  .tag-faq      { background: #3b2a0d; color: #d29922; border: 1px solid #5c4219; }
+  .tag-outro    { background: #21262d; color: #8b949e; border: 1px solid #30363d; }
+
+  .card-title-wrap { flex: 1; min-width: 0; }
+  .seg-title { font-size: 14px; font-weight: 600; color: #e6edf3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seg-time  { font-size: 11px; color: #484f58; margin-top: 2px; }
+  .seg-dur   { font-size: 11px; font-weight: 700; color: #6e7681; flex-shrink: 0; }
+  .chevron   { color: #484f58; font-size: 10px; flex-shrink: 0; transition: transform 0.2s; }
+  .chevron.open { transform: rotate(90deg); }
+
+  .card-body { display: none; border-top: 1px solid #21262d; padding: 12px 16px; }
+  .card-body.open { display: block; }
+
+  .row { margin-bottom: 10px; }
+  .row:last-child { margin-bottom: 0; }
+  .row-key { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #484f58; margin-bottom: 3px; }
+  .row-val { font-size: 13px; color: #cdd9e5; line-height: 1.55; }
+
+  .badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 5px; vertical-align: middle; }
+  .b-cam  { background: #2a1a3a; color: #bc8cff; border: 1px solid #4a2a6e; }
+  .b-vo   { background: #0d2444; color: #58a6ff; border: 1px solid #1f4070; }
+  .b-work { background: #3b1a0d; color: #f78166; border: 1px solid #6e2a1a; }
+  .b-tip  { background: #0d3b2e; color: #3fb950; border: 1px solid #1f5c38; }
+  .b-warn { background: #3b2a0d; color: #d29922; border: 1px solid #5c4219; }
+
+  /* ── Script ── */
+  .script-box { background: #0d1117; border-left: 3px solid #58a6ff; border-radius: 0 8px 8px 0; padding: 14px 16px; font-size: 13px; line-height: 1.8; color: #cdd9e5; margin-bottom: 12px; }
+  .script-box .direction { color: #484f58; font-style: italic; font-size: 11px; display: block; margin-bottom: 8px; }
+  .script-box p { margin-bottom: 10px; }
+  .script-box p:last-child { margin-bottom: 0; }
+
+  /* ── FAQ ── */
+  .faq-section { margin-bottom: 20px; }
+  .faq-cat { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #58a6ff; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #21262d; }
+  .faq-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #21262d; }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-dot { width: 5px; height: 5px; background: #58a6ff; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .faq-text { font-size: 13px; color: #cdd9e5; line-height: 1.5; }
+
+  /* ── Shots ── */
+  .shot-card { background: #161b22; border: 1px solid #21262d; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+  .shot-cat { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6e7681; margin-bottom: 10px; }
+  .shot-item { font-size: 13px; color: #cdd9e5; padding: 5px 0; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #21262d; }
+  .shot-item:last-child { border-bottom: none; }
+  .shot-item::before { content: ''; display: inline-block; width: 4px; height: 4px; background: #58a6ff; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── Formula ── */
+  .formula-card { background: #161b22; border: 1px solid #21262d; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; display: flex; gap: 14px; align-items: flex-start; }
+  .formula-num { font-size: 10px; font-weight: 700; color: #58a6ff; width: 40px; flex-shrink: 0; padding-top: 2px; }
+  .formula-title { font-size: 14px; font-weight: 600; color: #e6edf3; margin-bottom: 3px; }
+  .formula-desc { font-size: 12px; color: #8b949e; line-height: 1.5; }
+
+  .arc-wrap { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .arc-step { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #cdd9e5; font-weight: 600; }
+  .arc-step.highlight { background: #0d3b2e; border-color: #1f5c38; color: #3fb950; }
+  .arc-arrow { color: #484f58; display: flex; align-items: center; font-size: 14px; }
+
+  .tone-wrap { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tone-pill { border-radius: 20px; padding: 5px 12px; font-size: 11px; font-weight: 600; }
+
+  .series-wrap { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .series-ep { background: #161b22; border: 1px solid #21262d; border-radius: 10px; padding: 8px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px; }
+  .series-ep.current { border-color: #58a6ff; }
+  .series-ep-num { font-size: 9px; font-weight: 700; color: #484f58; }
+  .series-ep-name { color: #cdd9e5; }
+  .series-ep.current .series-ep-name { color: #58a6ff; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="ep-label">Fishy Jobs · S1 · EP 2</div>
+  <div class="ep-title">Pond Service &amp; Maintenance</div>
+  <div class="ep-theme">"Getting out from behind the desk and getting my hands dirty — literally"</div>
+  <div class="ep-meta">
+    <span class="meta-pill">⏱ ~25 min</span>
+    <span class="meta-pill">🎬 10 scenes</span>
+    <span class="meta-pill">🔧 Hands-on</span>
+    <span class="meta-pill">❓ 5 FAQs</span>
+  </div>
+</header>
+
+<div class="timeline-wrap">
+  <div class="timeline-bar" id="tl"></div>
+  <div class="tl-labels"><span class="tl-label">0:00</span><span class="tl-label">25:00</span></div>
+</div>
+
+<!-- PANELS -->
+<div class="panel active" id="tab-outline">
+  <div class="section-label">10 Scenes</div>
+  <div id="scenes"></div>
+</div>
+
+<div class="panel" id="tab-script">
+  <div class="section-label">Episode Intro — On Camera</div>
+  <div class="script-box">
+    <span class="direction">[On location — standing at the edge of a pond, tools visible in the background]</span>
+    <p>"Last episode I was in the greenhouse… getting my hands dirty with aquatic plants."</p>
+    <p><em>(Small smile)</em><br>"Today… it's a little different."</p>
+    <p>"Because today we're talking about pond service and maintenance — and honestly, this is one of those things that I think a lot of pond owners either don't know how to do… or just kind of hope they don't have to think about."</p>
+    <p><em>(Beat)</em><br>"But the truth is… a pond that isn't maintained isn't really a pond. It's just… a really expensive puddle waiting to go wrong."</p>
+    <p><em>(Slight laugh)</em><br>"And I'll be honest — even as someone who designs these things… there's a lot about what goes into keeping one healthy that I'm still learning."</p>
+    <p>"So today, I'm getting out from behind the desk again — and we're going to figure this out together."</p>
+  </div>
+
+  <div class="section-label">Voiceover — B-Roll</div>
+  <div class="script-box">
+    <span class="direction">[B-roll: pond surface, filter systems, test kits, pump, algae close-ups]</span>
+    <p>"A healthy pond is a balancing act. Water quality, filtration, algae, aeration — every single element affects the others. Get one thing wrong, and you can feel it ripple through the whole system."</p>
+    <p>"And for the fish living in it… this isn't just aesthetics. It's life support."</p>
+  </div>
+
+  <div class="section-label">Transition Back On Camera</div>
+  <div class="script-box">
+    <p>"When most people think about pond maintenance… they think about maybe skimming some leaves off the top."</p>
+    <p><em>(Small beat)</em><br>"And while that's… technically part of it… there is so much more happening beneath the surface."</p>
+    <p>"So today we're going to break it all down — water testing, filtration, algae, water changes — the whole thing."</p>
+    <p>"Let's get into it."</p>
+  </div>
+
+  <div class="section-label">Series</div>
+  <div class="series-wrap">
+    <div class="series-ep"><span class="series-ep-num">EP1</span><span class="series-ep-name">Aquatic Plants</span></div>
+    <div class="series-ep current"><span class="series-ep-num">EP2</span><span class="series-ep-name">Maintenance</span></div>
+    <div class="series-ep"><span class="series-ep-num">EP3</span><span class="series-ep-name">Construction</span></div>
+    <div class="series-ep"><span class="series-ep-num">EP4</span><span class="series-ep-name">Koi Fish</span></div>
+    <div class="series-ep"><span class="series-ep-num">EP5</span><span class="series-ep-name">Aquascaping</span></div>
+  </div>
+
+  <div class="section-label">Reflection / Outro</div>
+  <div class="script-box">
+    <span class="direction">[Solo on camera — back at the pond, end of day, slightly tired, genuine]</span>
+    <p>"Alright… so that was a lot."</p>
+    <p><em>(Small laugh)</em><br>"I think what surprised me most today was just… how much is actually going on in a pond that you never see. Like, you look at it from the outside and it just looks like water. But underneath that — there's a whole system working to keep everything alive."</p>
+    <p>"And I get it now. I really do. If you're a pond owner and you've been putting off maintenance… please don't."</p>
+    <p><em>(Beat)</em><br>"Your fish will thank you."</p>
+    <p>"Next time on Fishy Jobs… we're not maintaining a pond. We're building one. From scratch."</p>
+    <p><em>(Smile)</em><br>"See you then."</p>
+  </div>
+</div>
+
+<div class="panel" id="tab-questions">
+  <div class="faq-section">
+    <div class="faq-cat">Water Quality & Testing</div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">What are the most important water parameters to test for?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">How often should a pond owner be testing their water?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">What does a "bad" reading actually look like — and what do you do?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">Liquid test kit vs digital meter — what's the difference?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">Number one mistake owners make when their water looks off?</div></div>
+  </div>
+  <div class="faq-section">
+    <div class="faq-cat">Filtration</div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">What's the difference between mechanical and biological filtration?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">How do you clean a filter without killing the beneficial bacteria?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">How do you know when it's actually time to clean your filter?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">What does healthy biological media look like vs needing replacing?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">Can you over-clean a filter? What happens if you do?</div></div>
+  </div>
+  <div class="faq-section">
+    <div class="faq-cat">Algae</div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">What's the difference between green water and string algae?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">What actually causes an algae bloom?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">Do algaecides actually fix the problem, or just mask it?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">How does a UV clarifier work — does every pond need one?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">Is some algae actually okay or even healthy for a pond?</div></div>
+  </div>
+  <div class="faq-section">
+    <div class="faq-cat">Water Changes</div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">How often should someone be doing water changes?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">Why only partial changes — what happens if you swap everything out?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">Why does tap water need to be treated before going in?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">Why does the new water temperature need to match?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">What tools make water changes easier?</div></div>
+  </div>
+  <div class="faq-section">
+    <div class="faq-cat">General & Fish Health</div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">What does a proper weekly maintenance routine look like?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">How do you know if your fish are stressed by water conditions?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">What are the first signs something is wrong before it becomes a crisis?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">Does feeding amount affect water quality? How much is too much?</div></div>
+    <div class="faq-item"><div class="faq-dot"></div><div class="faq-text">What's the biggest thing pond owners overlook?</div></div>
+  </div>
+</div>
+
+<div class="panel" id="tab-shots">
+  <div class="shot-card">
+    <div class="shot-cat">🎥 B-Roll — Pond</div>
+    <div class="shot-item">Pond surface wide shot</div>
+    <div class="shot-item">Water close-up / ripples</div>
+    <div class="shot-item">Fish swimming beneath surface</div>
+    <div class="shot-item">Algae close-up (string & green)</div>
+    <div class="shot-item">Before / after water clarity</div>
+  </div>
+  <div class="shot-card">
+    <div class="shot-cat">🎥 B-Roll — Equipment</div>
+    <div class="shot-item">Test kit laid out</div>
+    <div class="shot-item">Digital meter reading</div>
+    <div class="shot-item">Filter media close-up</div>
+    <div class="shot-item">UV clarifier unit</div>
+    <div class="shot-item">Pump and plumbing</div>
+    <div class="shot-item">Pond vacuum in action</div>
+  </div>
+  <div class="shot-card">
+    <div class="shot-cat">🎬 On-Camera — Jarret</div>
+    <div class="shot-item">Standing at pond — intro</div>
+    <div class="shot-item">Running water test live</div>
+    <div class="shot-item">Pulling filter media out</div>
+    <div class="shot-item">Rinsing media correctly</div>
+    <div class="shot-item">Removing string algae</div>
+    <div class="shot-item">Running the pond vac</div>
+    <div class="shot-item">Solo reflection at end</div>
+  </div>
+  <div class="shot-card">
+    <div class="shot-cat">🎬 Action — Process</div>
+    <div class="shot-item">Water test color comparison</div>
+    <div class="shot-item">Dirty vs clean filter media</div>
+    <div class="shot-item">Dechlorinator being dosed</div>
+    <div class="shot-item">Water refill slow pour</div>
+    <div class="shot-item">Algae manual removal</div>
+  </div>
+  <div class="shot-card">
+    <div class="shot-cat">🎬 Key Moments</div>
+    <div class="shot-item">Jarret's reaction to a bad water test</div>
+    <div class="shot-item">First look inside the filter</div>
+    <div class="shot-item">Crystal clear water after change</div>
+    <div class="shot-item">Fish visibly more active after</div>
+    <div class="shot-item">Full circle — pond healthy again</div>
+  </div>
+</div>
+
+<div class="panel" id="tab-formula">
+  <div class="section-label">Story Arc</div>
+  <div class="arc-wrap">
+    <div class="arc-step highlight">Arrive</div>
+    <div class="arc-arrow">→</div>
+    <div class="arc-step">Test</div>
+    <div class="arc-arrow">→</div>
+    <div class="arc-step">Filter</div>
+    <div class="arc-arrow">→</div>
+    <div class="arc-step">Algae</div>
+    <div class="arc-arrow">→</div>
+    <div class="arc-step">Water Change</div>
+    <div class="arc-arrow">→</div>
+    <div class="arc-step highlight">Reflect</div>
+  </div>
+  <p style="font-size:11px;color:#6e7681;margin-bottom:20px;line-height:1.5;">Full circle: arrive at a struggling pond → diagnose → treat each problem → leave it healthier than you found it</p>
+
+  <div class="section-label">Episode Template</div>
+  <div class="formula-card"><div class="formula-num">01</div><div><div class="formula-title">Episode Intro on Location</div><div class="formula-desc">Jarret arrives, sets the topic, connects back to last episode</div></div></div>
+  <div class="formula-card"><div class="formula-num">02</div><div><div class="formula-title">Context / Voiceover</div><div class="formula-desc">B-roll with VO — set the scene, explain why this matters</div></div></div>
+  <div class="formula-card"><div class="formula-num">03</div><div><div class="formula-title">Meet the Expert</div><div class="formula-desc">Natural intro — Jarret admits what he doesn't know</div></div></div>
+  <div class="formula-card"><div class="formula-num">04</div><div><div class="formula-title">Learning Segment</div><div class="formula-desc">Walk through the theory — what, why, and what goes wrong</div></div></div>
+  <div class="formula-card"><div class="formula-num">05</div><div><div class="formula-title">First Hands-On Task</div><div class="formula-desc">Jarret jumps in — guided, beginner mistakes welcome</div></div></div>
+  <div class="formula-card"><div class="formula-num">06</div><div><div class="formula-title">Second Hands-On Task</div><div class="formula-desc">Deeper work — more complex, more Q&amp;A woven in</div></div></div>
+  <div class="formula-card"><div class="formula-num">07</div><div><div class="formula-title">Expert Q&amp;A</div><div class="formula-desc">Jarret asks the questions viewers are thinking</div></div></div>
+  <div class="formula-card"><div class="formula-num">08</div><div><div class="formula-title">Full Circle Moment</div><div class="formula-desc">The payoff — the work is done and visible</div></div></div>
+  <div class="formula-card"><div class="formula-num">09</div><div><div class="formula-title">Goodbyes</div><div class="formula-desc">Candid, unscripted — show the real team dynamic</div></div></div>
+  <div class="formula-card"><div class="formula-num">10</div><div><div class="formula-title">Reflection &amp; Tease</div><div class="formula-desc">Solo Jarret — honest take, tease next episode</div></div></div>
+
+  <div class="section-label">Tone</div>
+  <div class="tone-wrap">
+    <span class="tone-pill" style="background:#0d2444;color:#58a6ff;border:1px solid #1f4070;">Educational</span>
+    <span class="tone-pill" style="background:#0d3b2e;color:#3fb950;border:1px solid #1f5c38;">Hands-on</span>
+    <span class="tone-pill" style="background:#21262d;color:#8b949e;border:1px solid #30363d;">Self-deprecating</span>
+    <span class="tone-pill" style="background:#2a1a3a;color:#bc8cff;border:1px solid #4a2a6e;">Unscripted</span>
+    <span class="tone-pill" style="background:#3b1a0d;color:#f78166;border:1px solid #6e2a1a;">Messier than Ep 1</span>
+  </div>
+</div>
+
+<!-- Bottom nav -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="switchTab('outline',this)"><span class="nav-icon">🎬</span>Outline</button>
+  <button class="nav-btn" onclick="switchTab('script',this)"><span class="nav-icon">📝</span>Script</button>
+  <button class="nav-btn" onclick="switchTab('questions',this)"><span class="nav-icon">❓</span>Questions</button>
+  <button class="nav-btn" onclick="switchTab('shots',this)"><span class="nav-icon">📷</span>Shots</button>
+  <button class="nav-btn" onclick="switchTab('formula',this)"><span class="nav-icon">⚙️</span>Formula</button>
+</nav>
+
+<script>
+const scenes = [
+  { num:"01", tag:"INTRO",    tagClass:"tag-intro",    title:"Cold Open / Episode Intro",      time:"0:00 – 1:30",   dur:"~1.5m", color:"#3fb950",
+    rows:[["Type","On camera — at the pond location"],["Script","Jarret connects back to Ep 1, introduces today's topic with self-deprecating humor"],["Key beat","\"A pond that isn't maintained isn't a pond. It's just a really expensive puddle.\""],["Vibe","Confident but real — he's learning, not lecturing"]] },
+  { num:"02", tag:"LOCATION", tagClass:"tag-location", title:"Voiceover / B-Roll Context",     time:"1:30 – 2:30",   dur:"~1m",   color:"#58a6ff",
+    rows:[["Type",[["vo","b-vo"],"Voiceover over b-roll"]],["B-roll","Pond surface, filter systems, test kits, algae, pump close-ups"],["Key line","\"A healthy pond is a balancing act. Get one thing wrong and you feel it ripple through everything.\""],["Transition","Sets up the four pillars covered today"]] },
+  { num:"03", tag:"MEET",     tagClass:"tag-meet",     title:"Meet the Expert",                time:"2:30 – 3:30",   dur:"~1m",   color:"#bc8cff",
+    rows:[["Type","On camera — introductions"],["Who","Fitz Fish Ponds service/maintenance expert"],["Goal","Establish rapport; Jarret admits upfront he doesn't know this side of the job"],["Tone","Casual, funny if possible — set the expert up as the authority"]] },
+  { num:"04", tag:"LEARN",    tagClass:"tag-learn",    title:"Water Testing Walkthrough",      time:"3:30 – 7:00",   dur:"~3.5m", color:"#3fb950",
+    rows:[["Type",[["cam","b-cam"],"On camera + demo"]],["Topics","pH, ammonia, nitrite, nitrate, KH — what each means for fish health"],["Demo","Live water test on the pond; liquid kit and digital meter side by side"],["Key rule","Always test before treating — never guess and dose"],["Key moment","Jarret reacts to a bad reading — let it land naturally"]] },
+  { num:"05", tag:"WORK",     tagClass:"tag-work",     title:"Filter Maintenance",             time:"7:00 – 12:00",  dur:"~5m",   color:"#f78166",
+    rows:[["Type",[["work","b-work"],"Hands-on"]],["What","Pull filter media, show dirty vs healthy, clean it correctly"],["Warning",[["warn","b-warn"],"Never rinse bio media in tap water — kills the bacteria colony"]],["Key moment","Jarret does it wrong first — expert corrects him — keep it in"],["Shots","Close-up of media, water color change, before/after"]] },
+  { num:"06", tag:"WORK",     tagClass:"tag-work",     title:"Algae Management",               time:"12:00 – 16:30", dur:"~4.5m", color:"#f78166",
+    rows:[["Type",[["work","b-work"],"Hands-on + Q&A"]],["What","Manual string algae removal, then walk through how a UV clarifier works"],["Myth bust","Algaecides treat the symptom — explain nutrient overload instead"],["Ask expert","Is some algae actually okay? What's the tipping point?"],["Shots","Hands pulling algae, UV unit, green vs clear water comparison"]] },
+  { num:"07", tag:"WORK",     tagClass:"tag-work",     title:"Partial Water Change",           time:"16:30 – 20:30", dur:"~4m",   color:"#f78166",
+    rows:[["Type",[["work","b-work"],"Hands-on"]],["What","Pond vac debris, drain 15%, dechlorinate, temperature match, refill"],["Warning",[["warn","b-warn"],"100% water change destroys the nitrogen cycle — partial only, always"]],["Ask expert","How does dechlorinator actually work? What happens without it?"],["Mood","Satisfying — pond visibly looks better by the end"]] },
+  { num:"08", tag:"FAQSEG",   tagClass:"tag-faq",      title:"Top 5 Viewer FAQs",             time:"20:30 – 23:00", dur:"~2.5m", color:"#d29922",
+    rows:[["Format","Jarret asks expert — quick fire, one question at a time, natural answers"],["Q1","How often should I really be servicing my pond?"],["Q2","My water is green — what's the first thing I should do?"],["Q3","My fish are gasping at the surface — is that serious?"],["Q4","Can I just use tap water for a water change?"],["Q5","How do I know if my filter is actually doing its job?"]] },
+  { num:"09", tag:"OUTRO",    tagClass:"tag-outro",    title:"Say Goodbye to the Crew",       time:"23:00 – 23:30", dur:"~30s",  color:"#8b949e",
+    rows:[["Type","On camera — candid"],["What","Natural, unscripted goodbyes"],["Vibe","Show the team dynamic — these are real people Jarret works with"]] },
+  { num:"10", tag:"OUTRO",    tagClass:"tag-outro",    title:"Reflection & Next Episode Tease",time:"23:30 – 25:00", dur:"~1.5m", color:"#8b949e",
+    rows:[["Type","On camera — solo, end of day"],["What","Honest reflection on what surprised him and what he actually learned"],["Key line","\"If you're a pond owner putting off maintenance… please don't. Your fish will thank you.\""],["Tease","\"Next time — we're not maintaining a pond. We're building one from scratch.\""]] },
+];
+
+const durations = [1.5,1,1,3.5,5,4.5,4,2.5,0.5,1.5];
+
+const tl = document.getElementById('tl');
+durations.forEach((d,i) => {
+  const seg = document.createElement('div');
+  seg.className = 'tl-seg';
+  seg.style.cssText = `flex:${d};background:${scenes[i].color};opacity:0.6;`;
+  tl.appendChild(seg);
+});
+
+const container = document.getElementById('scenes');
+scenes.forEach((s,i) => {
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  const rowsHtml = s.rows.map(([k,...vals]) => {
+    let valHtml = '';
+    vals.forEach(v => {
+      if (Array.isArray(v) && v.length===2 && typeof v[0]==='string' && typeof v[1]==='string') {
+        valHtml += `<span class="badge b-${v[0]}">${v[0]}</span>${v[1]}`;
+      } else { valHtml += v; }
+    });
+    return `<div class="row"><div class="row-key">${k}</div><div class="row-val">${valHtml}</div></div>`;
+  }).join('');
+
+  card.innerHTML = `
+    <div class="card-header" onclick="toggle(${i})">
+      <span class="seg-num">${s.num}</span>
+      <span class="seg-tag ${s.tagClass}">${s.tag}</span>
+      <div class="card-title-wrap">
+        <div class="seg-title">${s.title}</div>
+        <div class="seg-time">${s.time} · ${s.dur}</div>
+      </div>
+      <span class="chevron" id="chev-${i}">▶</span>
+    </div>
+    <div class="card-body" id="body-${i}">${rowsHtml}</div>`;
+  container.appendChild(card);
+});
+
+function toggle(i) {
+  document.getElementById('body-'+i).classList.toggle('open');
+  document.getElementById('chev-'+i).classList.toggle('open');
+}
+toggle(0);
+
+function switchTab(name, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  el.classList.add('active');
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
